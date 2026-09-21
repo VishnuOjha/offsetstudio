@@ -18,7 +18,7 @@ npm run build && npm start
 ## Where each interaction lives
 | Interaction | File |
 |---|---|
-| Preloader (real load progress, CMYK bars, wipe) | `components/Preloader.jsx` |
+| Preloader (real load progress, CMYK plates, cracks on one canvas, the sheet shatters into shards drawn on one canvas) | `components/Preloader.jsx` |
 | Smooth scroll (Lenis on GSAP ticker) | `components/SmoothScroll.jsx` |
 | Blend-mode ring cursor: stretches with speed, fills with labels (`data-cursor="..."`; an empty value opts out of a parent's label) | `components/Cursor.jsx` |
 | Header hide/show + full-screen menu | `components/Header.jsx` |
@@ -27,7 +27,7 @@ npm run build && npm start
 | Scroll-velocity marquee | `components/Marquee.jsx` |
 | Scroll-scrubbed word reveal | `components/Statement.jsx` |
 | Sliding mixed-type services | `components/Services.jsx` |
-| Case showcase: cases stack down the page on alternating sides with a sticky counter; a sticky WebGL layer draws the images with scroll-speed ripple + colour split (desktop only, phones use plain images); explore badges | `components/Work.jsx`, `components/workGL.js` |
+| Case showcase: cases stack down the page on alternating sides with a sticky counter; a sticky WebGL layer draws the images with scroll-speed ripple + colour split (desktop only, phones use plain images; it starts after the loader and hero intro are done, not during load); explore badges | `components/Work.jsx`, `components/workGL.js` |
 | Cloudy WebGL background (parallax + churn on scroll, tint shifts down the page) | `components/CloudBackground.jsx` |
 | Count-up awards | `components/Awards.jsx` |
 | Magnetic buttons | `components/Magnetic.jsx` |
@@ -38,6 +38,9 @@ Shared state (loader done, Lenis instance, scroll velocity) is in `lib/store.js`
 GSAP plugins are registered once in `lib/gsap.js`.
 
 Reduced-motion users get a still, fully visible page with native scrolling.
+
+## Preloader performance
+It runs while the page is still booting, often on an integrated GPU, so it keeps GPU layers few: cracks and shards are each drawn on a single `<canvas>` (not hundreds of DOM/SVG nodes), the shard name-slices come from a small pre-rendered atlas built in slices before the impact, the cloud background stops drawing while the (opaque) loader covers it, and Pixi start-up is deferred until the loader and intro are done. If a browser's canvas text doesn't match the page's font width, the shards fall back to plain black and the name fades on its own.
 
 ## Cloud background
 `<CloudBackground />` in `app/page.js` accepts props:

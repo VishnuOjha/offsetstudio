@@ -69,7 +69,11 @@ img { display: block; max-width: 100%; }
 
 .sans { font-family: var(--font-sans); font-variation-settings: 'wdth' 125; font-weight: 800; }
 .serif { font-family: var(--font-serif); font-style: italic; font-weight: 400; }
-.mask { display: block; overflow: hidden; padding-bottom: 0.08em; }
+.mask {
+  display: block; overflow: hidden;
+  padding: 0.12em 0.14em 0.22em;
+  margin: -0.12em -0.14em -0.22em;
+}
 
 /* ==========================================================================
    Preloader — count, print the name, crack, shatter
@@ -82,14 +86,12 @@ img { display: block; max-width: 100%; }
   position: absolute; inset: 0;
   background: var(--ink); color: var(--paper);
 }
-.loader__shard {
-  position: absolute; /* box set inline from the shard's bounds */
-  overflow: hidden;
-  background: var(--ink); color: var(--paper);
+/* The pre-cut sheet: ONE canvas (drawn by Preloader.jsx), shown at the break. */
+.loader__shatter {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  visibility: hidden; pointer-events: none;
 }
-.loader__slice { position: absolute; width: 100vw; height: 100vh; }
 .loader__whole { pointer-events: auto; }
-.loader__shard { visibility: hidden; }
 
 .loader__center {
   position: absolute; inset: 0;
@@ -142,15 +144,11 @@ img { display: block; max-width: 100%; }
 .lname__plate--y { color: var(--y); }
 .lname__plate--k { color: var(--paper); mix-blend-mode: normal; }
 
+/* One canvas; the cracks are drawn onto it frame by frame from the impact. */
 .loader__cracks {
   position: absolute; inset: 0; width: 100%; height: 100%;
-  overflow: visible; pointer-events: none;
+  pointer-events: none;
   opacity: 0; /* shown at the moment of impact */
-}
-.loader__cracks path {
-  fill: none; stroke: var(--paper);
-  stroke-width: 0.16; stroke-linecap: round; stroke-linejoin: round;
-  stroke-dasharray: 1; stroke-dashoffset: 1;
 }
 .loader__flash {
   position: absolute; inset: 0; background: var(--paper);
@@ -244,12 +242,17 @@ main, .footer { position: relative; z-index: 1; }
   clip-path: inset(0 0 100% 0);
 }
 .menu__list { align-self: center; }
-.menu__link { display: block; overflow: hidden; }
+/* own formatting context: stops the links' negative margins from collapsing together */
+.menu__list li { display: flow-root; }
+.menu__link {
+  display: block; overflow: hidden;
+  font-size: clamp(3rem, 11vw, 9rem); line-height: 0.95;
+  padding: 0.05em 0.04em 0.2em; margin: -0.05em -0.04em -0.2em; /* ink room, layout unchanged */
+}
 .menu__link span {
   display: inline-block;
   font-variation-settings: 'wdth' 125; font-weight: 900;
-  font-size: clamp(3rem, 11vw, 9rem);
-  line-height: 0.95; letter-spacing: -0.04em;
+  letter-spacing: -0.04em;
   transition: font-variation-settings 0.6s var(--ease-out), color 0.3s;
 }
 .menu__link:hover span,
@@ -285,7 +288,7 @@ main, .footer { position: relative; z-index: 1; }
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   column-gap: clamp(12px, 2vw, 40px);
 }
-.hero__row--2 { grid-template-columns: minmax(0, 1.5fr) auto minmax(0, 0.8fr); }
+.hero__row--2 { grid-template-columns: minmax(0, 1.25fr) auto minmax(0, 1fr); }
 
 .print {
   display: inline-grid;
@@ -311,15 +314,20 @@ main, .footer { position: relative; z-index: 1; }
 .hero__smalls { display: grid; align-content: center; justify-items: end; }
 .hero__smalls--stack { gap: 0; }
 .hero__smalls--right { justify-items: start; }
-.hero__smalls { white-space: nowrap; }
+.hero__smalls { white-space: nowrap; font-size: var(--step-2); }
+/* tablets: track the wordmark so the side columns don't run out of room */
+@media (min-width: 801px) {
+  .hero__smalls { font-size: min(var(--step-2), 3.4vw); }
+}
 .hero__small {
   display: block;
-  font-size: var(--step-2); line-height: 1;
+  font-size: 1em; line-height: 1;
   font-variation-settings: 'wdth' 110; font-weight: 500;
   letter-spacing: -0.02em;
 }
 .hero__small.serif { font-weight: 400; font-variation-settings: normal; letter-spacing: 0; }
-.hero__badge { justify-self: start; }
+/* !important beats the inline size; full 180px from ~1290px wide, smaller below so it fits its column */
+.hero__badge { justify-self: start; width: clamp(110px, 14vw, 180px) !important; height: clamp(110px, 14vw, 180px) !important; }
 
 .hero__foot {
   display: flex; justify-content: space-between; align-items: end; gap: 24px;
@@ -423,7 +431,8 @@ main, .footer { position: relative; z-index: 1; }
 .services__list { border-top: 1px solid var(--rule); }
 .services__line {
   display: flex; flex-wrap: nowrap; justify-content: center; align-items: baseline; gap: 0.25em;
-  font-size: var(--step-4);
+  /* widest line (hover state included) is ~12em; leave room for the ±6% slide */
+  font-size: min(var(--step-4), 6.6vw);
   line-height: 1.02;
   padding: 0.04em 0;
   border-bottom: 1px solid var(--rule);
@@ -514,6 +523,7 @@ main, .footer { position: relative; z-index: 1; }
 
 .case__text {
   position: relative;
+  container-type: inline-size; /* lets the title size itself from this column (cqi) */
   display: grid; align-content: end;
   padding-bottom: 4vh;
   pointer-events: none;
@@ -529,7 +539,8 @@ main, .footer { position: relative; z-index: 1; }
 .case.is-active .case__num { -webkit-text-stroke-color: var(--m); }
 .case__title {
   display: flex; flex-wrap: wrap; column-gap: 0.4em;
-  font-size: clamp(2.6rem, 6vw, 7rem);
+  font-size: clamp(2.6rem, 5vw, 7rem); /* fallback without container units */
+  font-size: min(12cqi, 7rem);
   line-height: 0.92; font-weight: inherit;
   margin-bottom: 0.35em;
 }
@@ -647,7 +658,7 @@ main, .footer { position: relative; z-index: 1; }
   .case__text, .case--flip .case__text { grid-column: 1; grid-row: 2; text-align: left; justify-items: start; padding: 18px 0 0; }
   .case--flip .case__title { justify-content: flex-start; }
   .case__num { display: none; }
-  .case__title { font-size: 11vw; }
+  .case__title { font-size: 11vw; } /* one column, no slide */
   .case__explore, .case--flip .case__explore { left: auto; right: -8px; top: auto; bottom: 34%; width: 96px; height: 96px; }
   .case__explore .badge { width: 96px !important; height: 96px !important; }
 

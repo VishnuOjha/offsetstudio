@@ -70,26 +70,28 @@ export default function Work() {
         });
       }
 
-      // WebGL layer over the page-scrolling images.
-      let gl = null; let cancelled = false; let st = null;
+      // WebGL layer over the page-scrolling images. The plain <img> layout is what
+      // shows until it is ready, so it can wait: it starts once the preloader and
+      // the hero intro are done (in an idle moment), or as soon as the loader is
+      // done if the reader has already scrolled close to this section. Doing it at
+      // page load put ~0.5s of Pixi start-up on the main thread while the counter
+      // was running.
+      let gl = null; let cancelled = false; let st = null; let started = false;
       // Phones keep the plain <img> layout: three GL contexts plus filter
       // passes are too heavy there, and the effect is a desktop flourish.
       const smallScreen = window.matchMedia('(max-width: 800px)').matches;
-      const canGL = !smallScreen && (() => {
-        try {
-          const c = document.createElement('canvas');
-          const ctx = c.getContext('webgl2') || c.getContext('webgl');
-          ctx?.getExtension('WEBGL_lose_context')?.loseContext(); // free the probe context
-          return !!ctx;
-        } catch { return false; }
-      })();
-      // Start the WebGL layer on the next tick, not synchronously. In dev,
-      // React Strict Mode mounts → unmounts → re-mounts immediately; the
-      // short delay lets that first throw-away mount cancel before any GPU
-      // work starts, so Pixi is only ever created (and destroyed) once.
-      let startTimer = 0;
-      if (canGL && !reduce) startTimer = setTimeout(() => {
-        if (cancelled) return;
+      const start = () => {
+        if (started || cancelled || smallScreen || reduce) return;
+        started = true;
+        const canGL = (() => {
+          try {
+            const c = document.createElement('canvas');
+            const ctx = c.getContext('webgl2') || c.getContext('webgl');
+            ctx?.getExtension('WEBGL_lose_context')?.loseContext(); // free the probe context
+            return !!ctx;
+          } catch { return false; }
+        })();
+        if (!canGL) return;
         createWorkGL({
           host: root.current.querySelector('.cases__gl'),
           figures,
@@ -107,9 +109,28 @@ export default function Work() {
             if (!st.isActive) gl.stop();
           })
           .catch((err) => console.warn('Case WebGL disabled:', err));
-      }, 60);
+      };
+      let idleTimer = 0; let idleHandle = 0;
+      const offLoaded = store.onLoaded(() => {
+        idleTimer = setTimeout(() => {
+          if ('requestIdleCallback' in window) idleHandle = requestIdleCallback(start, { timeout: 3000 });
+          else start();
+        }, 5000); // the hero intro is still settling for ~3.5s after the release
+      });
+      // "Close" is ~1.6 screens away. (Two screens was already true at page load on
+      // a 900px-tall window: the section starts only ~2900px down the page.)
+      let offNear = () => {};
+      const near = ScrollTrigger.create({
+        trigger: root.current, start: 'top bottom+=60%', once: true,
+        onEnter: () => { offNear = store.onLoaded(start); },
+      });
 
-      return () => { cancelled = true; clearTimeout(startTimer); mm.revert(); st?.kill(); gl?.destroy(); };
+      return () => {
+        cancelled = true;
+        offLoaded(); offNear(); clearTimeout(idleTimer);
+        if (idleHandle && window.cancelIdleCallback) cancelIdleCallback(idleHandle);
+        near.kill(); mm.revert(); st?.kill(); gl?.destroy();
+      };
     },
     { scope: root }
   );

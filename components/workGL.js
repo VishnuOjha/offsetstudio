@@ -104,14 +104,25 @@ export async function createWorkGL({ host, figures, sources, getVelocity }) {
 
   let v = 0;
   let t = 0;
-  // Warm up the GPU now (this runs while the preloader is still showing):
-  // one render with the filters on uploads every texture and compiles every
-  // shader, so the first scroll into the cases doesn't hitch.
-  scene.filters = FILTERS;
-  app.render();
-  scene.filters = null;
-
   let running = true;
+  let destroyed = false;
+
+  // Warm up the GPU so the first scroll into the cases doesn't hitch: rendering
+  // with the filters on uploads the textures and compiles the shaders. Done in
+  // one go that is a long stall (every texture uploaded in a single frame), so
+  // it is spread over a few frames, two images at a time.
+  const nextTick = () => new Promise((resolve) => {
+    const f = () => { gsap.ticker.remove(f); resolve(); };
+    gsap.ticker.add(f);
+  });
+  scene.filters = FILTERS;
+  for (let i = 0; i < items.length && !destroyed; i += 2) {
+    items.forEach((it, j) => { it.holder.visible = j >= i && j < i + 2; });
+    app.render();
+    await nextTick();
+  }
+  items.forEach((it) => { it.holder.visible = false; });
+  scene.filters = null;
 
   // Runs inside GSAP's ticker, i.e. in the same frame and after Lenis and
   // ScrollTrigger have moved the DOM — so the canvas never lags a frame
@@ -171,6 +182,7 @@ export async function createWorkGL({ host, figures, sources, getVelocity }) {
     start: () => { running = true; },
     stop: () => { running = false; },
     destroy: () => {
+      destroyed = true;
       running = false;
       gsap.ticker.remove(frame);
       io.disconnect();

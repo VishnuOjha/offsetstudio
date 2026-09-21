@@ -31,7 +31,7 @@ export default function Header() {
         .timeline({ paused: true })
         .set(panel, { visibility: 'visible' })
         .fromTo(panel, { clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0% 0)', duration: 0.9, ease: 'expo.inOut' })
-        .from(panel.querySelectorAll('.menu__link span'), { yPercent: 110, rotate: 4, stagger: 0.06, duration: 1 }, '-=0.35')
+        .from(panel.querySelectorAll('.menu__link span'), { yPercent: 130, rotate: 4, stagger: 0.06, duration: 1 }, '-=0.35')
         .from(panel.querySelectorAll('.menu__foot > *'), { opacity: 0, y: 20, stagger: 0.05, duration: 0.8 }, '<0.2');
 
       return () => { off(); st.kill(); };

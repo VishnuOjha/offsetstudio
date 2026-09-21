@@ -184,8 +184,13 @@ export default function CloudBackground({
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     let raf = 0; let speed = 0; let clock = 0; let last = performance.now();
     let calm = false; // true when nothing is moving → draw at ~30 fps
+    let drewOnce = false;
     const draw = () => {
       const now = performance.now();
+      // The preloader is opaque, so nobody can see the clouds behind it. Draw one
+      // frame (so they are there for the reveal), then rest until it is released;
+      // the shader was competing with the loader animation for the GPU.
+      if (drewOnce && document.documentElement.classList.contains('is-loading')) { last = now; return; }
       if (calm && now - last < 32) return; // idle clouds don't need 60 fps
       const dt = Math.min((now - last) / 1000, 0.1); last = now;
       const y = store.lenis ? store.lenis.animatedScroll : window.scrollY;
@@ -220,6 +225,7 @@ export default function CloudBackground({
       }
       gl.uniform3fv(U.trail, trail);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
+      drewOnce = true;
 
       const mouseMoving = m && m.active && Math.hypot(m.vx, m.vy) > 0.3;
       calm = speed < 0.3 && trail[2] < 0.3 && !mouseMoving;

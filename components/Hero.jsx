@@ -49,7 +49,7 @@ export default function Hero() {
 
       // Pre-load state (the preloader covers the page until this plays).
       splits.forEach((s) => gsap.set(s.chars, { yPercent: 115 }));
-      gsap.set(small, { yPercent: 120 });
+      gsap.set(small, { yPercent: 160 });
       gsap.set(plateC, { x: -18, y: 10 });
       gsap.set(plateM, { x: 16, y: -8 });
       gsap.set(q('.hero__badge, .hero__reel, .hero__intro'), { autoAlpha: 0, y: 30 });
