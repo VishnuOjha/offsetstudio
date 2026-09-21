@@ -1,9 +1,9 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { gsap, useGSAP, SplitText, prefersReducedMotion } from '@/lib/gsap';
 import { store } from '@/lib/store';
 import { tickWhenVisible } from '@/lib/whenVisible';
-import { studio } from '@/lib/content';
+import { studio, copy } from '@/lib/content';
 import CircleBadge from './CircleBadge';
 import Magnetic from './Magnetic';
 import ReelModal from './ReelModal';
@@ -24,20 +24,30 @@ function PrintedLine({ text, className }) {
 export default function Hero() {
   const root = useRef(null);
   const [reel, setReel] = useState(false);
+  const [reelReady, setReelReady] = useState(false);
+  const closeReel = useCallback(() => setReel(false), []);
+
+  // Only offer the reel once the video file is actually there.
+  useEffect(() => {
+    let alive = true;
+    fetch(copy.reel, { method: 'HEAD' })
+      .then((r) => alive && setReelReady(r.ok && /video/.test(r.headers.get('content-type') || '')))
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
 
   useGSAP(
     () => {
+      // Reduced motion: the page is simply there, nothing to split or hide.
+      if (prefersReducedMotion()) return;
+
       const q = gsap.utils.selector(root);
-      const reduce = prefersReducedMotion();
       const splits = q('.print__plate').map((el) => new SplitText(el, { type: 'chars', charsClass: 'char' }));
       const small = q('.hero__small');
       const plateC = q('.print__plate--c');
       const plateM = q('.print__plate--m');
 
-      gsap.set(root.current, { autoAlpha: 1 });
-      if (reduce) return;
-
-      // Pre-load state.
+      // Pre-load state (the preloader covers the page until this plays).
       splits.forEach((s) => gsap.set(s.chars, { yPercent: 115 }));
       gsap.set(small, { yPercent: 120 });
       gsap.set(plateC, { x: -18, y: 10 });
@@ -106,6 +116,8 @@ export default function Hero() {
     { scope: root }
   );
 
+  const { lead, stack, tail, since, intro, reel: reelLabel } = copy.hero;
+
   return (
     <section className="hero" id="top" ref={root}>
       <h1 className="hero__title">
@@ -113,7 +125,7 @@ export default function Hero() {
 
         <span className="hero__row hero__row--1">
           <span className="hero__smalls">
-            <span className="mask"><span className="hero__small">we are</span></span>
+            <span className="mask"><span className="hero__small">{lead}</span></span>
           </span>
           <PrintedLine text={studio.wordmark[0]} className="hero__line hero__line--1" />
           <CircleBadge text={studio.badge} className="hero__badge" />
@@ -121,30 +133,28 @@ export default function Hero() {
 
         <span className="hero__row hero__row--2">
           <span className="hero__smalls hero__smalls--stack">
-            <span className="mask"><span className="hero__small">a design</span></span>
-            <span className="mask"><span className="hero__small serif">&amp; motion</span></span>
+            <span className="mask"><span className="hero__small">{stack[0]}</span></span>
+            <span className="mask"><span className="hero__small serif">{stack[1]}</span></span>
           </span>
           <PrintedLine text={studio.wordmark[1]} className="hero__line hero__line--2" />
           <span className="hero__smalls hero__smalls--right">
-            <span className="mask"><span className="hero__small">studio</span></span>
-            <span className="mask"><span className="hero__small serif">since {studio.founded}</span></span>
+            <span className="mask"><span className="hero__small">{tail}</span></span>
+            <span className="mask"><span className="hero__small serif">{since} {studio.founded}</span></span>
           </span>
         </span>
       </h1>
 
       <div className="hero__foot">
-        <p className="hero__intro">
-          Brand systems, websites and motion for people who care how things are made.
-        </p>
+        <p className="hero__intro">{intro}</p>
         <Magnetic strength={0.4}>
-          <button className="hero__reel" data-cursor="Play" onClick={() => setReel(true)}>
+          <button className="hero__reel" data-cursor="Play" hidden={!reelReady} onClick={() => setReel(true)}>
             <span className="hero__reel-icon" aria-hidden="true" />
-            Play the reel
+            {reelLabel}
           </button>
         </Magnetic>
       </div>
 
-      <ReelModal open={reel} onClose={() => setReel(false)} />
+      {reelReady && <ReelModal open={reel} onClose={closeReel} />}
     </section>
   );
 }

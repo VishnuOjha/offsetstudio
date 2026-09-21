@@ -2,7 +2,7 @@
 import { useRef } from 'react';
 import { gsap, useGSAP, prefersReducedMotion } from '@/lib/gsap';
 import { store } from '@/lib/store';
-import { studio, socials } from '@/lib/content';
+import { studio, socials, copy } from '@/lib/content';
 import Magnetic from './Magnetic';
 import Clock from './Clock';
 import Marquee from './Marquee';
@@ -31,12 +31,12 @@ export default function Footer() {
 
   return (
     <footer className="footer" id="contact" ref={root}>
-      <Marquee text="Start a project" reverse className="marquee--dark" />
+      <Marquee text={copy.marquee.footer} reverse className="marquee--dark" />
 
       <div className="footer__body">
         <h2 className="footer__title">
-          <span className="sans">Have something</span>
-          <span className="serif">in mind?</span>
+          <span className="sans">{copy.labels.footer[0]}</span>
+          <span className="serif">{copy.labels.footer[1]}</span>
         </h2>
 
         <Magnetic strength={0.25} className="footer__cta-wrap">
@@ -55,7 +55,7 @@ export default function Footer() {
             <Clock /><br />
             © {new Date().getFullYear()} {studio.name} studio
           </p>
-          <button className="footer__top" onClick={toTop}>Back to top</button>
+          <button className="footer__top" onClick={toTop}>{copy.labels.backToTop}</button>
         </div>
       </div>
 

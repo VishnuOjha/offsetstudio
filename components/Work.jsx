@@ -2,7 +2,7 @@
 import { useRef } from 'react';
 import { gsap, useGSAP, ScrollTrigger, prefersReducedMotion } from '@/lib/gsap';
 import { store } from '@/lib/store';
-import { cases } from '@/lib/content';
+import { cases, copy } from '@/lib/content';
 import { createWorkGL } from './workGL';
 import CircleBadge from './CircleBadge';
 
@@ -42,12 +42,23 @@ export default function Work() {
         });
       });
 
+      const mm = gsap.matchMedia();
       if (!reduce) {
+        // The title slides sideways on wide screens only; on a phone it would
+        // overshoot the screen edge and widen the page.
+        mm.add('(min-width: 801px)', () => {
+          slides.forEach((slide, i) => {
+            const dir = i % 2 ? -1 : 1;
+            gsap.fromTo(
+              slide.querySelector('.case__title'),
+              { xPercent: 10 * dir },
+              { xPercent: -6 * dir, ease: 'none', scrollTrigger: { trigger: slide, start: 'top bottom', end: 'bottom top', scrub: true } }
+            );
+          });
+        });
         slides.forEach((slide, i) => {
-          const dir = i % 2 ? -1 : 1;
           const trig = { trigger: slide, start: 'top bottom', end: 'bottom top', scrub: true };
           gsap.fromTo(slide.querySelector('.case__num'), { yPercent: 40 }, { yPercent: -40, ease: 'none', scrollTrigger: trig });
-          gsap.fromTo(slide.querySelector('.case__title'), { xPercent: 10 * dir }, { xPercent: -6 * dir, ease: 'none', scrollTrigger: { ...trig } });
           gsap.fromTo(slide.querySelector('.case__explore'), { y: 80 }, { y: -80, ease: 'none', scrollTrigger: { ...trig } });
           // The picture grows into its frame as it enters. (A transform, not a
           // clip-path, so the WebGL layer — which reads the box — follows it.)
@@ -61,9 +72,16 @@ export default function Work() {
 
       // WebGL layer over the page-scrolling images.
       let gl = null; let cancelled = false; let st = null;
-      const canGL = (() => {
-        try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); }
-        catch { return false; }
+      // Phones keep the plain <img> layout: three GL contexts plus filter
+      // passes are too heavy there, and the effect is a desktop flourish.
+      const smallScreen = window.matchMedia('(max-width: 800px)').matches;
+      const canGL = !smallScreen && (() => {
+        try {
+          const c = document.createElement('canvas');
+          const ctx = c.getContext('webgl2') || c.getContext('webgl');
+          ctx?.getExtension('WEBGL_lose_context')?.loseContext(); // free the probe context
+          return !!ctx;
+        } catch { return false; }
       })();
       // Start the WebGL layer on the next tick, not synchronously. In dev,
       // React Strict Mode mounts → unmounts → re-mounts immediately; the
@@ -77,7 +95,6 @@ export default function Work() {
           figures,
           sources: cases.map((c) => c.img),
           getVelocity: () => store.velocity || 0,
-          axis: 'y',
         })
           .then((instance) => {
             if (cancelled) { instance.destroy(); return; }
@@ -92,7 +109,7 @@ export default function Work() {
           .catch((err) => console.warn('Case WebGL disabled:', err));
       }, 60);
 
-      return () => { cancelled = true; clearTimeout(startTimer); st?.kill(); gl?.destroy(); };
+      return () => { cancelled = true; clearTimeout(startTimer); mm.revert(); st?.kill(); gl?.destroy(); };
     },
     { scope: root }
   );
@@ -104,7 +121,7 @@ export default function Work() {
 
       <header className="cases__head">
         <h2 className="cases__heading">
-          <span className="sans">Selected</span> <span className="serif">cases</span>
+          <span className="sans">{copy.labels.cases[0]}</span> <span className="serif">{copy.labels.cases[1]}</span>
         </h2>
       </header>
 
@@ -139,7 +156,7 @@ export default function Work() {
               </div>
 
               <a className="case__explore" href={c.href} data-cursor="Explore" tabIndex={-1} aria-hidden="true">
-                <CircleBadge text="explore case ✺ " size={124} />
+                <CircleBadge text={copy.badges.explore} size={124} />
               </a>
             </li>
           ))}

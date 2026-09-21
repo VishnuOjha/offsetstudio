@@ -1,7 +1,7 @@
 'use client';
 import { useRef } from 'react';
 import { gsap, useGSAP, prefersReducedMotion } from '@/lib/gsap';
-import { awards } from '@/lib/content';
+import { awards, copy } from '@/lib/content';
 
 // Counts roll up once, the first time the list comes into view.
 export default function Awards() {
@@ -29,7 +29,7 @@ export default function Awards() {
   return (
     <section className="awards" id="recognition" ref={root}>
       <h2 className="awards__title">
-        <span className="sans">Awards &amp;</span> <span className="serif">recognition</span>
+        <span className="sans">{copy.labels.awards[0]}</span> <span className="serif">{copy.labels.awards[1]}</span>
       </h2>
       <div className="awards__table">
         {awards.map((group) => (

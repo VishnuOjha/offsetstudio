@@ -1,8 +1,8 @@
-// WebGL layer for the work slider.
-// The DOM keeps the layout (and the <img> fallback); Pixi reads each
-// figure's box every frame and draws the image there, so the canvas
-// always matches the draggable DOM exactly. Drag speed feeds a
-// displacement ripple and a CMYK-style channel split.
+// WebGL layer for the case list.
+// The DOM keeps the layout (and the <img> fallback); Pixi reads the box of
+// each figure that is near the viewport every frame and draws the image
+// there, so the canvas always matches the DOM exactly. Scroll speed feeds a
+// displacement ripple and a CMYK-style channel split along the scroll axis.
 
 function makeNoiseCanvas(size = 256) {
   const c = document.createElement('canvas');
@@ -30,8 +30,7 @@ function makeNoiseCanvas(size = 256) {
   return c;
 }
 
-export async function createWorkGL({ host, figures, sources, getVelocity, axis = 'x' }) {
-  const vertical = axis === 'y';
+export async function createWorkGL({ host, figures, sources, getVelocity }) {
   const PIXI = await import('pixi.js');
   const { RGBSplitFilter } = await import('pixi-filters');
   const { gsap } = await import('gsap');
@@ -77,12 +76,30 @@ export async function createWorkGL({ host, figures, sources, getVelocity, axis =
     holder.addChild(sprite, mask);
     holder.mask = mask;
     scene.addChild(holder);
-    return { fig, sprite, mask, hover: 0, hoverTarget: 0 };
+    return { fig, holder, sprite, mask, hover: 0, hoverTarget: 0, near: false };
   });
 
-  figures.forEach((fig, i) => {
-    fig.addEventListener('pointerenter', () => (items[i].hoverTarget = 1));
-    fig.addEventListener('pointerleave', () => (items[i].hoverTarget = 0));
+  // Only figures near the viewport are measured and drawn; reading every
+  // figure's rect each frame forced layout for cards nobody could see.
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        const it = items.find((x) => x.fig === e.target);
+        if (it) it.near = e.isIntersecting;
+      }
+    },
+    { rootMargin: '50px' }
+  );
+
+  // Hover handlers, kept so destroy() can remove them from the (persistent) DOM.
+  const listeners = [];
+  items.forEach((it) => {
+    const enter = () => (it.hoverTarget = 1);
+    const leave = () => (it.hoverTarget = 0);
+    it.fig.addEventListener('pointerenter', enter);
+    it.fig.addEventListener('pointerleave', leave);
+    listeners.push([it.fig, 'pointerenter', enter], [it.fig, 'pointerleave', leave]);
+    io.observe(it.fig);
   });
 
   let v = 0;
@@ -95,9 +112,6 @@ export async function createWorkGL({ host, figures, sources, getVelocity, axis =
   scene.filters = null;
 
   let running = true;
-  let hostBox = host.getBoundingClientRect();
-  const onResize = () => { hostBox = host.getBoundingClientRect(); };
-  window.addEventListener('resize', onResize);
 
   // Runs inside GSAP's ticker, i.e. in the same frame and after Lenis and
   // ScrollTrigger have moved the DOM — so the canvas never lags a frame
@@ -106,7 +120,7 @@ export async function createWorkGL({ host, figures, sources, getVelocity, axis =
     if (!running) return;
     const dt = deltaMs / 16.67;
     t += dt;
-    hostBox = host.getBoundingClientRect(); // sticky host: cheap, one read per frame
+    const hostBox = host.getBoundingClientRect(); // sticky host: one cheap read per frame
     v += (getVelocity() - v) * 0.12;
     const speed = Math.min(Math.abs(v), 40);
 
@@ -116,28 +130,22 @@ export async function createWorkGL({ host, figures, sources, getVelocity, axis =
       scene.filters = wantFilters ? FILTERS : null;
     }
 
-    // Ripple and channel split run along the direction of travel.
-    displace.scale.x = speed * (vertical ? 0.35 : 0.9);
-    displace.scale.y = speed * (vertical ? 0.6 : 0.35);
+    // Ripple and channel split run along the scroll (vertical) axis.
+    displace.scale.x = speed * 0.35;
+    displace.scale.y = speed * 0.6;
     noise.x = t * 1.2;
     noise.y = t * 0.4;
 
     const s = Math.sign(v) * Math.min(speed * 0.3, 10);
-    if (vertical) {
-      split.redY = -s; split.greenY = s * 0.5; split.blueY = s;
-    } else {
-      split.redX = -s; split.greenX = s * 0.5; split.blueX = s;
-    }
+    split.redY = -s; split.greenY = s * 0.5; split.blueY = s;
 
     for (const it of items) {
+      it.holder.visible = it.near;
+      if (!it.near) continue;
+
       const r = it.fig.getBoundingClientRect();
       const x = r.left - hostBox.left;
       const y = r.top - hostBox.top;
-      const visible = vertical
-        ? y + r.height > -50 && y < hostBox.height + 50
-        : x + r.width > -50 && x < hostBox.width + 50;
-      it.sprite.parent.visible = visible;
-      if (!visible) continue;
 
       it.mask.position.set(x, y);
       it.mask.scale.set(r.width, r.height);
@@ -148,13 +156,8 @@ export async function createWorkGL({ host, figures, sources, getVelocity, axis =
       const zoom = 1.12 + it.hover * 0.08; // extra room for parallax
       it.sprite.scale.set(cover * zoom);
       // Inner parallax: the picture lags behind its frame while moving.
-      if (vertical) {
-        const off = (y + r.height / 2 - hostBox.height / 2) / hostBox.height;
-        it.sprite.position.set(x + r.width / 2, y + r.height / 2 - off * r.height * 0.1);
-      } else {
-        const off = (x + r.width / 2 - hostBox.width / 2) / hostBox.width;
-        it.sprite.position.set(x + r.width / 2 - off * r.width * 0.08, y + r.height / 2);
-      }
+      const off = (y + r.height / 2 - hostBox.height / 2) / hostBox.height;
+      it.sprite.position.set(x + r.width / 2, y + r.height / 2 - off * r.height * 0.1);
     }
   };
   const frame = (time, deltaMs) => {
@@ -170,7 +173,8 @@ export async function createWorkGL({ host, figures, sources, getVelocity, axis =
     destroy: () => {
       running = false;
       gsap.ticker.remove(frame);
-      window.removeEventListener('resize', onResize);
+      io.disconnect();
+      listeners.forEach(([el, type, fn]) => el.removeEventListener(type, fn));
       // Unbind the filters before tearing down, so Pixi doesn't warn about
       // destroying textures that a shader still references (seen in dev,
       // where React Strict Mode creates and destroys this once on mount).

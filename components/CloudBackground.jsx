@@ -18,7 +18,6 @@ uniform vec2  uRes;
 uniform float uTime;
 uniform float uScroll;    // page scroll in px
 uniform float uProgress;  // 0..1 down the page
-uniform float uSpeed;     // smoothed |scroll velocity|
 uniform vec3  uPaper;
 uniform vec3  uTintA;
 uniform vec3  uTintB;
@@ -148,7 +147,7 @@ export default function CloudBackground({
     const u = (n) => gl.getUniformLocation(prog, n);
     const U = {
       res: u('uRes'), time: u('uTime'), scroll: u('uScroll'), progress: u('uProgress'),
-      speed: u('uSpeed'), paper: u('uPaper'), a: u('uTintA'), b: u('uTintB'), density: u('uDensity'),
+      paper: u('uPaper'), a: u('uTintA'), b: u('uTintB'), density: u('uDensity'),
       trail: u('uTrail'),
     };
     // Trail of recent cursor positions, newest first.
@@ -197,7 +196,6 @@ export default function CloudBackground({
       gl.uniform1f(U.time, clock);
       gl.uniform1f(U.scroll, y);
       gl.uniform1f(U.progress, y / max);
-      gl.uniform1f(U.speed, speed * 40);
 
       // ---- cursor wake ----
       const m = store.mouse;

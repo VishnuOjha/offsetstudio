@@ -1,7 +1,7 @@
 'use client';
 import { useRef } from 'react';
 import { gsap, useGSAP, SplitText, prefersReducedMotion } from '@/lib/gsap';
-import { studio } from '@/lib/content';
+import { studio, copy } from '@/lib/content';
 import CircleBadge from './CircleBadge';
 
 // Words ink in as you read down the page.
@@ -29,9 +29,9 @@ export default function Statement() {
 
   return (
     <section className="statement" id="studio" ref={root}>
-      <p className="statement__label">The studio</p>
+      <p className="statement__label">{copy.labels.statement}</p>
       <p className="statement__text">{studio.statement}</p>
-      <CircleBadge text="read more about us ✺ " size={120} className="statement__badge" />
+      <CircleBadge text={copy.badges.statement} size={120} className="statement__badge" />
     </section>
   );
 }

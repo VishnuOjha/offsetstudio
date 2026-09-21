@@ -164,7 +164,7 @@ export default function Preloader() {
       // quick bursts, short stalls, a slow crawl through the 90s — the way a
       // real download feels. It can never run ahead of what has actually
       // loaded (target), so on a slow connection it simply waits longer.
-      const DURATION = 5200; // ms for the curve on a fast connection
+      const DURATION = 2600; // ms for the curve on a fast connection
       const jit = () => (Math.random() - 0.5) * 0.06; // a little variety per visit
       const CURVE = [
         [0.0, 0], [0.08, 6], [0.16, 14], [0.22, 17],   // start, first stall
@@ -210,8 +210,10 @@ export default function Preloader() {
 
       const srcs = cases.map((c) => c.img);
       let loaded = 0;
-      srcs.forEach((src) => preload(src).then(() => { loaded += 1; target = (loaded / srcs.length) * 92; }));
-      Promise.all([...srcs.map(preload), document.fonts?.ready]).then(() => { target = 100; });
+      const loads = srcs.map((src) =>
+        preload(src).then(() => { loaded += 1; target = (loaded / srcs.length) * 92; })
+      );
+      Promise.all([...loads, document.fonts?.ready]).then(() => { target = 100; });
       const safety = setTimeout(() => { target = 100; }, 8000); // slow network
 
       // ---------- 2–4. Name → crack → shatter --------------------------
@@ -227,16 +229,16 @@ export default function Preloader() {
         const tl = gsap.timeline();
 
         // 2. number out, name prints in out of register, then snaps together
-        tl.to(counter, { yPercent: -110, duration: 0.7, ease: 'expo.in' })
-          .to(q('.loader__bar, .loader__label'), { opacity: 0, duration: 0.4 }, '<')
+        tl.to(counter, { yPercent: -110, duration: 0.5, ease: 'expo.in' })
+          .to(q('.loader__bar, .loader__label'), { opacity: 0, duration: 0.3 }, '<')
           .set(q('.loader__whole .lname'), { visibility: 'visible' })
-          .from(namePlates, { yPercent: 110, duration: 1, ease: 'expo.out', stagger: 0.05 })
-          .fromTo(pc, { x: -26, y: 8 }, { x: 0, y: 0, duration: 1.1, ease: 'elastic.out(1, 0.5)' }, '-=0.5')
-          .fromTo(pm, { x: 22, y: -10 }, { x: 0, y: 0, duration: 1.1, ease: 'elastic.out(1, 0.5)' }, '<')
-          .fromTo(py, { x: 6, y: 16 }, { x: 0, y: 0, duration: 1.1, ease: 'elastic.out(1, 0.5)' }, '<')
+          .from(namePlates, { yPercent: 110, duration: 0.8, ease: 'expo.out', stagger: 0.05 })
+          .fromTo(pc, { x: -26, y: 8 }, { x: 0, y: 0, duration: 0.9, ease: 'elastic.out(1, 0.5)' }, '-=0.4')
+          .fromTo(pm, { x: 22, y: -10 }, { x: 0, y: 0, duration: 0.9, ease: 'elastic.out(1, 0.5)' }, '<')
+          .fromTo(py, { x: 6, y: 16 }, { x: 0, y: 0, duration: 0.9, ease: 'elastic.out(1, 0.5)' }, '<')
 
           // wind-up
-          .to(whole, { scale: 0.965, duration: 0.35, ease: 'power2.in' }, '+=0.2')
+          .to(whole, { scale: 0.965, duration: 0.3, ease: 'power2.in' }, '+=0.05')
 
           // 3. impact
           .addLabel('impact')

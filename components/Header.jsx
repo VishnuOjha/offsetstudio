@@ -2,9 +2,8 @@
 import { useRef, useState } from 'react';
 import { gsap, useGSAP, ScrollTrigger } from '@/lib/gsap';
 import { store } from '@/lib/store';
-import { nav, studio, socials } from '@/lib/content';
+import { nav, studio, socials, copy } from '@/lib/content';
 import Magnetic from './Magnetic';
-import Clock from './Clock';
 
 export default function Header() {
   const root = useRef(null);
@@ -53,7 +52,6 @@ export default function Header() {
         <a href="#top" className="header__logo" aria-label={`${studio.name} home`} onClick={() => toggle(false)}>
           {studio.name.toLowerCase()}<sup>®</sup>
         </a>
-        <p className="header__meta"></p>
         <Magnetic>
           <button
             className="header__menu"
@@ -61,7 +59,7 @@ export default function Header() {
             aria-controls="site-menu"
             onClick={() => toggle()}
           >
-            <span className="header__menu-text">{open ? 'Close' : 'Menu'}</span>
+            <span className="header__menu-text">{open ? copy.labels.menuClose : copy.labels.menuOpen}</span>
             <span className="header__burger" aria-hidden="true"><i /><i /></span>
           </button>
         </Magnetic>

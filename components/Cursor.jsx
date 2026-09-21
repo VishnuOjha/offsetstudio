@@ -8,7 +8,7 @@ import { store } from '@/lib/store';
 // difference, so it inverts whatever is underneath — paper, clouds, photos.
 //  • links / buttons   → ring tightens, dot swells
 //  • [data-cursor=X]   → ring fills into a disc with the label X
-//  • data-cursor=Drag  → the disc shows arrows either side of the label
+//  • data-cursor=""    → behaves like a plain link (opts out of a parent's label)
 //  • fast movement     → the ring stretches along the direction of travel
 // Pointer position and speed are shared via store.mouse, which the cloud
 // background uses to swirl and part the clouds around the cursor.
@@ -69,7 +69,6 @@ export default function Cursor() {
       const text = target?.dataset?.cursor;
       el.classList.toggle('is-label', !!text);
       el.classList.toggle('is-link', !!target && !text);
-      el.classList.toggle('is-drag', text === 'Drag');
       label.textContent = text || '';
       gsap.to(state, { scale: text ? 1 : target ? 0.6 : 1, duration: 0.6, ease: 'expo.out' });
     };
